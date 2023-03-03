@@ -89,8 +89,8 @@
 
 
  7. Ordonnancement avec Airflow   
-  > pour l'installation : `install_aiflow.sh`
-  > le script pipeline : `eks-pipeline.py`
+  >  - script installation : `install_aiflow.sh`
+  >  - script pipeline : `eks-pipeline.py`
    
   ![image](https://user-images.githubusercontent.com/119690854/222822393-0970370d-150e-43fc-82ad-3c37fcd6e43c.png)
 
