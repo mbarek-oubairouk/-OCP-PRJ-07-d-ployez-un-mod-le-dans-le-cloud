@@ -27,6 +27,7 @@
 <img src="https://user-images.githubusercontent.com/119690854/222803947-c86c8050-84b3-4109-8192-9a3b684e9d2d.png"  width="60%" height="30%">
 
 #### Description du code disponible dans le répertoire `livrables`:
+  > `00-conf > conf.ini` : contient les informations d'authentification AWS
 
 <img src="https://user-images.githubusercontent.com/119690854/222806350-11434837-880a-44ac-9279-86d11497b347.png"  width="90%" height="60%">
 
