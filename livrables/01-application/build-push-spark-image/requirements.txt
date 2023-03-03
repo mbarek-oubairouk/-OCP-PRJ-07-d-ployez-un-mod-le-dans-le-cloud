@@ -1,0 +1,9 @@
+Pillow
+tensorflow-cpu
+numpy 
+pandas
+matplotlib
+pyarrow
+jupyter
+sparkdl
+findspark
