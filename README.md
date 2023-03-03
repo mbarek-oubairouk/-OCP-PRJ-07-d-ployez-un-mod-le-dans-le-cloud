@@ -10,8 +10,8 @@
 - Scripts `PySpark`
 - Déploiement cloud 
 
-## Données
-[Kaggle](https://www.kaggle.com/datasets/moltean/fruits)
+## Données ([Kaggle](https://www.kaggle.com/datasets/moltean/fruits))
+
 <img src="https://user-images.githubusercontent.com/119690854/222800695-850e7635-7740-4703-89c0-d25b525d3630.png"  width="60%" height="30%">
 
 
