@@ -1,0 +1,153 @@
+---
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: ${CLUSTER_NAME}
+  region: ${REGION}
+  version: "1.24"
+
+availabilityZones: ["${REGION}a","${REGION}c"]
+
+vpc:
+# If you wish to use an existing VPC, please provide the subnet ID, change the availability zones above accordingly
+#  subnets:
+#    private:
+#      us-east-3a: { id: <YOUR_SUBNET_ID> }
+#      us-east-3b: { id: <YOUR_SUBNET_ID> }
+  nat:
+    gateway: Single # other options: Disable, Single (default),HighlyAvailable
+  clusterEndpoints:
+    publicAccess: true
+    privateAccess: true
+
+cloudWatch:
+  clusterLogging:
+    # enable specific types of cluster control plane logs
+    enableTypes: ["audit"]
+    # all supported types: "api", "audit", "authenticator", "controllerManager", "scheduler"
+    # supported special values: "*" and "all"
+
+iam:
+  withOIDC: true
+  serviceAccounts:
+    - metadata:
+        name: cluster-autoscaler
+        namespace: kube-system
+        labels: {aws-usage: "cluster-ops"}
+      attachPolicy: # inline policy can be defined along with `attachPolicyARNs`
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "autoscaling:DescribeAutoScalingGroups"
+              - "autoscaling:DescribeAutoScalingInstances"
+              - "autoscaling:DescribeLaunchConfigurations"
+              - "autoscaling:DescribeScalingActivities"
+              - "autoscaling:DescribeTags"
+              - "ec2:DescribeInstanceTypes"
+              - "ec2:DescribeLaunchTemplateVersions"
+              - "ec2:DescribeImages"
+              - "ec2:GetInstanceTypesFromInstanceRequirements"
+              - "autoscaling:SetDesiredCapacity"
+              - "autoscaling:TerminateInstanceInAutoScalingGroup"
+              - "eks:DescribeNodegroup"
+            Resource: '*'
+
+
+
+fargateProfiles:
+  - name: spark-fargate
+    selectors:
+      # All workloads in the "spark-serverless" Kubernetes namespace matching the following
+      # label selectors will be scheduled onto Fargate:
+      - namespace: spark-fargate
+        # Only Spark executors (Pods with this label) will run on Fargate
+        labels:
+          spark/component: executor
+
+nodeGroups:
+  
+    # Nodegroup used to run Spark driver on x86 based nodes with on-demand
+  - name: spark-od-3a
+    availabilityZones: ["${REGION}a"]
+    minSize: 1
+    maxSize: 1
+    desiredCapacity: 1
+    privateNetworking: true
+    #m5.large t3.large
+    instanceType: "m5.large" 
+    labels:
+      arch: x86
+      disk: none
+      noderole: spark
+    tags:
+      k8s.io/cluster-autoscaler/node-template/label/arch: x86
+      k8s.io/cluster-autoscaler/node-template/label/kubernetes.io/os: linux
+      k8s.io/cluster-autoscaler/node-template/label/noderole: spark
+      k8s.io/cluster-autoscaler/node-template/label/disk: none
+      k8s.io/cluster-autoscaler/node-template/label/node-lifecycle: on-demand
+      k8s.io/cluster-autoscaler/node-template/label/topology.kubernetes.io/zone: ${REGION}a      
+      k8s.io/cluster-autoscaler/${CLUSTER_NAME}: owned
+      k8s.io/cluster-autoscaler/enabled: "true"
+    iam:
+      withAddonPolicies:
+        ebs: true
+        fsx: true
+        efs: true
+        autoScaler: true
+        cloudWatch: true
+      attachPolicyARNs:
+        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        - arn:aws:iam::${AWS_ID}:policy/access2s3
+
+  # Nodegroup used to run Spark executors on x86 based nodes with instance store for shuffle, spot and executors collocation
+  - name: spark-spot-nvme-3a
+    availabilityZones: ["${REGION}a"]
+    minSize: 0
+    maxSize: 3
+    privateNetworking: true
+    instancesDistribution:
+      instanceTypes: ["r5d.4xlarge", "r5ad.4xlarge", "r5dn.4xlarge"]
+      onDemandBaseCapacity: 0
+      onDemandPercentageAboveBaseCapacity: 0
+      spotAllocationStrategy: capacity-optimized
+    labels:
+      arch: x86
+      disk: nvme
+      noderole: spark
+    tags:
+      k8s.io/cluster-autoscaler/node-template/label/arch: x86
+      k8s.io/cluster-autoscaler/node-template/label/kubernetes.io/os: linux
+      k8s.io/cluster-autoscaler/node-template/label/noderole: spark
+      k8s.io/cluster-autoscaler/node-template/label/disk: nvme
+      k8s.io/cluster-autoscaler/node-template/label/node-lifecycle: spot
+      k8s.io/cluster-autoscaler/node-template/label/topology.kubernetes.io/zone: ${REGION}a
+      k8s.io/cluster-autoscaler/node-template/taint/spot: "true:NoSchedule"
+      k8s.io/cluster-autoscaler/${CLUSTER_NAME}: owned
+      k8s.io/cluster-autoscaler/enabled: "true"
+    taints:
+      spot: "true:NoSchedule"
+    iam:
+      withAddonPolicies:
+        ebs: true
+        fsx: true
+        efs: true
+        autoScaler: true
+        cloudWatch: true
+      attachPolicyARNs:
+        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        - arn:aws:iam::${AWS_ID}:policy/access2s3
+    preBootstrapCommands:
+      - "yum install nvme-cli mdadm -y"
+      - "mkdir -p /pv-disks/local"
+      - "instance_stores=$(nvme list | awk '/Instance Storage/ {print $1}') && count=$(echo $instance_stores | wc -w) && mdadm --create --verbose --level=0 /dev/md0 --name=DATA --raid-devices=$count $instance_stores"
+      - "mdadm --wait /dev/md0"
+      - "mkfs.ext4 /dev/md0"
+      - "mdadm --detail --scan >> /etc/mdadm.conf"
+      - "echo /dev/md0 /pv-disks/local ext4 defaults,noatime 0 2 >> /etc/fstab"
+      - "mount -a"

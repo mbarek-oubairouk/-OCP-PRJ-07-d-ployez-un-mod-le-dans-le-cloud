@@ -1,0 +1,124 @@
+# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: spark-fargate
+  namespace: spark-fargate
+imagePullSecrets:
+- name: docker-secret
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: access3-secret
+  namespace: spark-fargate
+type: Opaque
+data:
+  fs.s3a.access.key: ${AWS_ACCESS_KEY}
+  fs.s3a.secret.key: ${AWS_SECRET_KEY}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: spark-fargate-role
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: edit
+subjects:
+  - kind: ServiceAccount
+    name: spark-fargate
+    namespace: spark-fargate
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: spark-eks-fargate
+  namespace: spark-fargate
+data:
+  driver: |-
+    apiVersion: v1
+    kind: Pod
+    spec:
+      nodeSelector:
+        noderole: spark 
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: job-spark-eks-fargate
+  namespace: spark-fargate
+spec:
+  template:
+    spec:
+      containers:
+        - name: spark
+          image: ${AWS_ID}.dkr.ecr.${REGION}.amazonaws.com/bigdata:spark-py-eks
+          args: [
+            "/bin/sh",
+            "-c",
+            "/opt/spark/bin/spark-submit \
+            --master k8s://https://kubernetes.default.svc.cluster.local:443 \
+            --deploy-mode cluster \
+            --name spark-eks-fargate \
+            --conf spark.jars.ivy=/tmp/.ivy \
+            --conf spark.dynamicAllocation.enabled=true \
+            --conf spark.dynamicAllocation.shuffleTracking.enabled=true \
+            --conf spark.dynamicAllocation.shuffleTracking.timeout=600 \
+            --conf spark.dynamicAllocation.minExecutors=4 \
+            --conf spark.dynamicAllocation.maxExecutors=12 \
+            --conf spark.kubernetes.allocation.batch.size=10 \
+            --conf spark.dynamicAllocation.executorAllocationRatio=1 \
+            --conf spark.dynamicAllocation.schedulerBacklogTimeout=1 \
+            --conf spark.driver.memory=4G \
+            --conf spark.executor.memory=16G \
+            --conf spark.executor.cores=2 \
+            --conf spark.sql.shuffle.partitions=16 \
+            --conf spark.kubernetes.container.image=${AWS_ID}.dkr.ecr.${REGION}.amazonaws.com/bigdata:spark-py-eks \
+            --conf spark.hadoop.fs.s3a.impl=org.apache.hadoop.fs.s3a.S3AFileSystem \
+            --conf spark.kubernetes.container.image.pullPolicy=Always \
+            --conf spark.kubernetes.namespace=spark-fargate \
+            --conf spark.kubernetes.authenticate.driver.serviceAccountName=spark-fargate \
+            --conf spark.kubernetes.driver.label.spark/app=spark-eks-fargate \
+            --conf spark.kubernetes.executor.label.spark/app=spark-eks-fargate \
+            --conf spark.kubernetes.driver.label.spark/component=driver \
+            --conf spark.kubernetes.executor.label.spark/component=executor \
+            --conf spark.kubernetes.driver.annotation.cluster-autoscaler.kubernetes.io/safe-to-evict=false \
+            --conf spark.kubernetes.driver.podTemplateFile='/opt/spark/conf/driver_pod_template.yml' \
+            --conf spark.hadoop.mapreduce.outputcommitter.factory.scheme.s3a=org.apache.hadoop.fs.s3a.commit.S3ACommitterFactory \
+            --conf spark.sql.sources.commitProtocolClass=org.apache.spark.internal.io.cloud.PathOutputCommitProtocol \
+            --conf spark.sql.parquet.output.committer.class=org.apache.hadoop.mapreduce.lib.output.BindingPathOutputCommitter \
+            --conf spark.kubernetes.authenticate.submission.caCertFile=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt \
+            --conf spark.kubernetes.authenticate.submission.oauthTokenFile=/var/run/secrets/kubernetes.io/serviceaccount/token \
+            --conf spark.hadoop.fs.s3a.committer.name=magic \
+            --conf spark.hadoop.fs.s3a.committer.magic.enabled=true \
+            --conf spark.hadoop.fs.s3a.fast.upload=true \
+            --conf spark.kubernetes.driver.secrets.access3-secret=/etc/secrets \
+            --conf spark.kubernetes.executor.secrets.access3-secret=/etc/secrets \
+            --conf spark.kubernetes.driver.secretKeyRef.AWS_ACCESS_KEY_ID=access3-secret:fs.s3a.access.key \
+            --conf spark.kubernetes.driver.secretKeyRef.AWS_SECRET_ACCESS_KEY=access3-secret:fs.s3a.secret.key \
+            --conf spark.kubernetes.executor.secretKeyRef.AWS_ACCESS_KEY_ID=access3-secret:fs.s3a.access.key \
+            --conf spark.kubernetes.executor.secretKeyRef.AWS_SECRET_ACCESS_KEY=access3-secret:fs.s3a.secret.key \
+            s3a://oc-mb-fruits/app/spark-app.py
+            "
+          ] 
+          volumeMounts:
+            - name: spark-pod-template
+              mountPath: /opt/spark/conf/driver_pod_template.yml
+              subPath: driver
+            - name: access3-volume
+              mountPath: /etc/secrets
+              readOnly: true
+      serviceAccountName: spark-fargate
+      restartPolicy: Never
+      volumes:
+        - name: spark-pod-template
+          configMap:
+            name: spark-eks-fargate
+            defaultMode: 
+        - name : access3-volume
+          secret:
+            secretName: access3-secret
+  backoffLimit: 4
+
