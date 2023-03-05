@@ -1,0 +1,2 @@
+Vous devez télécharger le fichier contenant les poids du modèle `inception-v3-weights-tf-dim-ordering-tf-kernels-notop.h5` et le déposé dans ce répertoire.
+Pour éviter d'avoir à payer les frais liés au chargement du fichier à partir du aws.
