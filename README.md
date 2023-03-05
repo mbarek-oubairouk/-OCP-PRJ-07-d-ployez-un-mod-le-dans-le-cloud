@@ -46,7 +46,7 @@
 
  4. Exécution de l’application Spark
   > Le code de l’application est disponible dans s3 : s3://oc-mb-fruits/`app`/`spark-app.py`
-  > Modifier le nom de la bucket S3 ( varibale `nom_bucket`) dans le script python `spark-app.py`
+  > Modifier le nom de la bucket S3 ( variable `nom_bucket`) dans le script python `spark-app.py`
   > ![image](https://user-images.githubusercontent.com/119690854/222811458-8ba7069b-838a-47bf-8655-5af5b5c6741f.png)
 
  5. Monitoring
