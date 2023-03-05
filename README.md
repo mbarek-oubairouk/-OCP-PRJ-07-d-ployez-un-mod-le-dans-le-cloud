@@ -36,7 +36,7 @@
 ![image](https://user-images.githubusercontent.com/119690854/222807465-aaa208a8-16f7-45a3-b8a7-b18b02bbd0f5.png)
 
 ## Chaîne de traitement
- 1. Copie des images (`Training`) dans une bucket S3 ( dabs mon cas :`s3://oc-mb-fruits/` )
+ 1. Copie des images (`Training`) dans une bucket S3 ( dans mon cas :`s3://oc-mb-fruits/` )
    >  aws s3 sync . `s3://oc-mb-fruits/Training` 
  2. Construction de l'image docker Spark compatible (cloud+kubernetes)
    >  ![image](https://user-images.githubusercontent.com/119690854/222809863-eb583e6c-8fdb-41d0-973d-e4ee8494d95a.png)
@@ -49,7 +49,7 @@
   > Modifier le nom de la bucket S3 ( varibale `nom_bucket`) dans le script python `spark-app.py`
   > ![image](https://user-images.githubusercontent.com/119690854/222811458-8ba7069b-838a-47bf-8655-5af5b5c6741f.png)
 
- 5. Moniroting
+ 5. Monitoring
    - UI Spark 
      ```bash
      # namespace pour driver spark
