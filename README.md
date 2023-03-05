@@ -27,7 +27,9 @@
 <img src="https://user-images.githubusercontent.com/119690854/222803947-c86c8050-84b3-4109-8192-9a3b684e9d2d.png"  width="60%" height="30%">
 
 #### Description du code disponible dans le répertoire `livrables`:
-  > `00-conf > conf.ini` : contient les informations d'authentification AWS
+  > `00-conf > conf.ini` : contient les informations d'authentification AWS et déploiement
+   >> `mon_bucket` : le nom de la bucket s3 <br>
+   >> `aws_id`, `aws_access_key_id`, `aws_secret_access_key` : pour l'authentification AWS
 
 <img src="https://user-images.githubusercontent.com/119690854/222806350-11434837-880a-44ac-9279-86d11497b347.png"  width="90%" height="60%">
 
@@ -45,8 +47,7 @@
   > ![image](https://user-images.githubusercontent.com/119690854/222811020-9a18cbe1-8979-4b6c-9341-a6387009b58c.png)
 
  4. Exécution de l’application Spark
-  > Le code de l’application est disponible dans s3 : s3://oc-mb-fruits/`app`/`spark-app.py`
-  > Modifier le nom de la bucket S3 ( variable `nom_bucket`) dans le script python `spark-app.py`
+  > Le code de l’application est disponible dans s3 : s3://${mon_bucket}/`app`/`spark-app.py`
   > ![image](https://user-images.githubusercontent.com/119690854/222811458-8ba7069b-838a-47bf-8655-5af5b5c6741f.png)
 
  5. Monitoring
