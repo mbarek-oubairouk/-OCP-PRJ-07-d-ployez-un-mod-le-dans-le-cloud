@@ -28,7 +28,7 @@
 
 #### Description du code disponible dans le répertoire `livrables`:
   > `00-conf > conf.ini` : contient les informations d'authentification AWS et déploiement
-   >> `mon_bucket` : le nom de la bucket s3 <br>
+   >> `mon_bucket` : le nom du bucket s3 <br>
    >> `aws_id`, `aws_access_key_id`, `aws_secret_access_key` : pour l'authentification AWS
 
 <img src="https://user-images.githubusercontent.com/119690854/222806350-11434837-880a-44ac-9279-86d11497b347.png"  width="90%" height="60%">
@@ -38,7 +38,7 @@
 ![image](https://user-images.githubusercontent.com/119690854/222807465-aaa208a8-16f7-45a3-b8a7-b18b02bbd0f5.png)
 
 ## Chaîne de traitement
- 1. Copie des images (`Training`) dans une bucket S3 ( dans mon cas :`s3://oc-mb-fruits/` )
+ 1. Copie des images (`Training`) dans un bucket S3 ( dans mon cas :`s3://oc-mb-fruits/` )
    >  aws s3 sync . `s3://oc-mb-fruits/Training` 
  2. Construction de l'image docker Spark compatible (cloud+kubernetes)
    >  ![image](https://user-images.githubusercontent.com/119690854/222809863-eb583e6c-8fdb-41d0-973d-e4ee8494d95a.png)
