@@ -50,6 +50,8 @@ from pyspark.ml import Pipeline
 from pyspark.mllib.evaluation import MulticlassMetrics
 import itertools
 
+from configparser import ConfigParser
+
 # Versions
 print('Version des librairies utilisées :')
 print('Python        : ' + sys.version)
@@ -63,13 +65,28 @@ now = datetime.now().isoformat()
 print('Lancé le      : ' + now)
 
 
+# ====================================================================
+# Chargement du fichier configuration
+# ====================================================================
+
+in_file = '../../00-conf/conf.ini'
+conf = ConfigParser()
+conf.optionxform=str
+
+conf.read(in_file, encoding='utf-8')
+
+# le nom de mon boucket s3
+
+nom_bucket=conf['deploy']['mon_bucket']
+
+
 ## Define the details of the SparkSession
 
 spark = SparkSession.builder.appName('FeatExtraction').getOrCreate()
 
 ############################################
 
-nom_bucket="oc-mb-fruits"
+
 
 # Chemin de stockage des images du jeu de données
 path_train_set = f"s3a://{nom_bucket}/Training/*/*"
